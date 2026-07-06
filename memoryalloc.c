@@ -3,9 +3,10 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <sys/mman.h>
 
-#define HEAP_SIZE 2048
-static char my_heap[HEAP_SIZE];
+#define HEAP_SIZE (1024 * 1024) //request 1 megabyte from memory
+static void* my_heap = NULL; //pointer to hold the OS allocated memory
 
 // Every Block of memory gets this hidden header
 typedef struct BlockHeader{
@@ -16,6 +17,12 @@ typedef struct BlockHeader{
 
 // Initialise the heap with one big free block (first_block)
 void init_heap() {
+    // Request a brand new block of RAW ram from the kernel
+    my_heap = mmap(NULL, HEAP_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
+    if (my_heap == MAP_FAILED) {
+        return;
+    }
     BlockHeader* first_block = (BlockHeader*)my_heap; //pointer type cast
     first_block->size = HEAP_SIZE - sizeof(BlockHeader);
     first_block->is_free = true;
@@ -28,6 +35,9 @@ void* memory_alloc(size_t size) {
     static bool is_initialised = false;
     if (!is_initialised) {
         init_heap();
+        if (my_heap == MAP_FAILED) {
+            return NULL;
+        }
         is_initialised = true;
     }
 
