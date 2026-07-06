@@ -24,8 +24,12 @@ void init_heap() {
 
 //Allocator Function
 void* memory_alloc(size_t size) {
-//initialise the heap
-    init_heap();
+//initialise the heap exactly once
+    static bool is_initialised = false;
+    if (!is_initialised) {
+        init_heap();
+        is_initialised = true;
+    }
 
     BlockHeader* curr = (BlockHeader*)my_heap;
 
@@ -53,6 +57,16 @@ void* memory_alloc(size_t size) {
     return NULL; //out of memory (no free blocks)
 }
 
+//Free Function
+void cust_free(void* ptr) {
+    if (!ptr) return;
+
+    //step backward to get the block header
+    BlockHeader* header = (BlockHeader*)((char*)ptr - sizeof(BlockHeader));
+    header->is_free = true; //update its status so that it can be used again
+
+}
+
 //Test that it works
 int main(void) {
     int number;
@@ -74,7 +88,7 @@ int main(void) {
     }
 
 //Replace with custom free()
-    free(arr);
+    cust_free(arr);
     arr = NULL;
     return 0;
 }
