@@ -65,6 +65,22 @@ void cust_free(void* ptr) {
     BlockHeader* header = (BlockHeader*)((char*)ptr - sizeof(BlockHeader));
     header->is_free = true; //update its status so that it can be used again
 
+    //Scan the entire heap and merge adjacent free blocks
+    BlockHeader* curr = (BlockHeader*)my_heap;
+    
+    while (curr != NULL && curr->next != NULL) {
+        //if the current block and the next block are free merge them
+        if (curr->is_free && curr->next->is_free) {
+            // The new size absorbs the next block's payload And its header
+            curr->size += sizeof(BlockHeader) + curr->next->size;
+
+            //skip the next block in the linked list chain
+            curr->next = curr->next->next;
+            //Loop again to see if the new next block can be merged
+            continue;
+        }
+        curr = curr->next;
+    }
 }
 
 //Test that it works
@@ -87,7 +103,7 @@ int main(void) {
         printf("%d\n", arr[i]);
     }
 
-//Replace with custom free()
+//free memory using cust_free()
     cust_free(arr);
     arr = NULL;
     return 0;
