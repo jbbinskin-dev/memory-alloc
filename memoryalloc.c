@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <sys/mman.h>
+#include "memory_alloc.h"
 
 #define HEAP_SIZE (1024 * 1024) //request 1 megabyte from memory
 
@@ -81,7 +82,7 @@ void cust_free(void* ptr) {
     //step backward to get the block header
     BlockHeader* header = (BlockHeader*)((char*)ptr - sizeof(BlockHeader));
     header->is_free = true; //update its status so that it can be used again
-
+    
     //Scan the entire heap and merge adjacent free blocks
     BlockHeader* curr = (BlockHeader*)my_heap;
     
@@ -98,30 +99,4 @@ void cust_free(void* ptr) {
         }
         curr = curr->next;
     }
-}
-
-//Test that it works
-int main(void) {
-    int number;
-    printf("Number of integers to store? ");
-    scanf("%d", &number);
-//allocate memory based on user input
-    int* arr = memory_alloc(number * sizeof(int));
-    if (arr == NULL) {
-        printf("Memory Allocation Failed");
-        return 1;
-    }
-//print the array
-    for (int i=0; i<number;i++) {
-        printf("Enter a number: ");
-        scanf("%d", &arr[i]);
-    }
-    for (int i=0; i<number;i++) {
-        printf("%d\n", arr[i]);
-    }
-
-//free memory using cust_free()
-    cust_free(arr);
-    arr = NULL;
-    return 0;
 }
