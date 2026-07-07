@@ -6,6 +6,11 @@
 #include <sys/mman.h>
 
 #define HEAP_SIZE (1024 * 1024) //request 1 megabyte from memory
+
+// Malloc uses 16 byte aligned memory, to align to fit all datatypes
+#define ALIGNMENT 16
+#define ALIGN_UP(size) (((size) + (ALIGNMENT - 1)) & ~(ALIGNMENT - 1)) //rounds any size to the next multiple of 16.
+
 static void* my_heap = NULL; //pointer to hold the OS allocated memory
 
 // Every Block of memory gets this hidden header
@@ -13,6 +18,7 @@ typedef struct BlockHeader{
     size_t size;
     bool is_free;
     struct BlockHeader* next;
+    char padding[ALIGNMENT - (sizeof(size_t) + sizeof(bool) + sizeof(void*)) % ALIGNMENT]; //make the size of BlockHeader a multiple of 16
 } BlockHeader;
 
 // Initialise the heap with one big free block (first_block)
@@ -41,6 +47,7 @@ void* memory_alloc(size_t size) {
         is_initialised = true;
     }
 
+    size = ALIGN_UP(size);
     BlockHeader* curr = (BlockHeader*)my_heap;
 
     while (curr != NULL) {
@@ -48,7 +55,7 @@ void* memory_alloc(size_t size) {
         if (curr->is_free && curr->size >= size) {
 
             //Split the Block if it is much larger than requested
-            if (curr->size >= size + sizeof(BlockHeader) + 8) {
+            if (curr->size >= size + sizeof(BlockHeader) + ALIGNMENT) {
                 BlockHeader* next_block = (BlockHeader*)((char*)curr + sizeof(BlockHeader) + size);
                 next_block->size = curr->size - size - sizeof(BlockHeader);
                 next_block->is_free = true;
